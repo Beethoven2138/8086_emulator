@@ -79,9 +79,9 @@ void cycle(void)
 					if (RM(cpu->opcodes[1]) & 0x4 == 0)
 					{
 						if (REG(cpu->opcodes[1]) & 0x4 == 0)
-							cpu->registers[RM(cpu->opcodes[1])] = (tmp & 0xFF00) | ((tmp & 0xFF) + (cpu->registers[REG(cpu->opcodes[1])] & 0xFF));
+							cpu->registers[RM(cpu->opcodes[1])] = (tmp & 0xFF00) | (((tmp & 0xFF) + (cpu->registers[REG(cpu->opcodes[1])] & 0xFF)) & 0xFF);
 						else
-							cpu->registers[RM(cpu->opcodes[1])] = (tmp & 0xFF00) | ((tmp & 0xFF) + ((cpu->registers[REG(cpu->opcodes[1])] & 0xFF00) >> 8));
+							cpu->registers[RM(cpu->opcodes[1])] = (tmp & 0xFF00) | (((tmp & 0xFF) + ((cpu->registers[REG(cpu->opcodes[1])] & 0xFF00) >> 8)) & 0xFF);
 					}
 					else
 					{
