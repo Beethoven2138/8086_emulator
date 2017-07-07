@@ -25,25 +25,74 @@ void init_cpu(CPU *cpu, const char *rom)
 		}
 	}
 
-	cpu->registers = (REGS*)malloc(sizeof(REGS));
-
-	cpu->registers->SP = 0x100;
-	cpu->registers->BP = 0x100;
+	SP(cpu) = 0x100;
+	BP(cpu) = 0x100;
 
 	fill_opcodes48();
 }
 
 void cycle(void)
 {
-	char opcode = cpu->opcodes[0];
-	lower_opcodes(1);
+	//Should be after executing the opcode to know how many bytes it is
+	//lower_opcodes(1);
 	if (cpu->opcode_index <= 3)
 		fill_opcodes16();
 
-	//ADD Byte + Byte
-	if (opcode == 0)
+	//ADD
+	if (cpu->opcodes[0] & 0xFC == 0)
 	{
-		
+		//if mod is 11
+		if (cpu->opcodes[1] & 0xC0 == 0)
+		{
+			//If 16-bit operands
+			if (cpu->opcodes[0] & 0x1 == 1)
+			{
+				//if d == 1: data moves from operand specified by R/M to operand specified by REG
+				if (cpu->opcodes[0] & 0x2 == 2)
+					cpu->registers[REG(cpu->opcodes[1])] += RM(cpu->opcodes[1]);
+				else
+					cpu->registers[RM(cpu->opcodes[1])] += REG(cpu->opcodes[1]);
+			}
+			else//8-bit operands
+			{
+				if (cpu->opcodes[0] & 0x2 == 2)
+				{
+					unsigned short tmp = cpu->registers[REG(cpu->opcodes[1])];
+					if (REG(cpu->opcodes[1]) & 0x4 == 0)//Lower byte eg AL
+					{
+						if (RM(cpu->opcodes[1]) & 0x4 == 0)
+							cpu->registers[REG(cpu->opcodes[1])] = (tmp & 0xFF00) | (((tmp & 0xFF) + (cpu->registers[RM(cpu->opcodes[1])] & 0xFF)) & 0xFF);
+						else
+							cpu->registers[REG(cpu->opcodes[1])] = (tmp & 0xFF00) | (((tmp & 0xFF) + ((cpu->registers[RM(cpu->opcodes[1])] & 0xFF00) >> 8)) & 0xFF);
+					}
+					else
+					{ 
+						if (RM(cpu->opcodes[1]) & 0x4 == 0)
+							cpu->registers[REG(cpu->opcodes[1])] = (tmp & 0xFF) | ((((tmp & 0xFF00) >> 8) + (cpu->registers[RM(cpu->opcodes[1])] & 0xFF)) << 8);
+						else
+							cpu->registers[REG(cpu->opcodes[1])] = (tmp & 0xFF) | ((((tmp & 0xFF00) >> 8) + ((cpu->registers[RM(cpu->opcodes[1])] & 0xFF00) >> 8)) << 8);
+					}
+				}
+				else
+				{
+					unsigned short tmp = cpu->registers[RM(cpu->opcodes[1])];
+					if (RM(cpu->opcodes[1]) & 0x4 == 0)
+					{
+						if (REG(cpu->opcodes[1]) & 0x4 == 0)
+							cpu->registers[RM(cpu->opcodes[1])] = (tmp & 0xFF00) | ((tmp & 0xFF) + (cpu->registers[REG(cpu->opcodes[1])] & 0xFF));
+						else
+							cpu->registers[RM(cpu->opcodes[1])] = (tmp & 0xFF00) | ((tmp & 0xFF) + ((cpu->registers[REG(cpu->opcodes[1])] & 0xFF00) >> 8));
+					}
+					else
+					{
+						if (REG(cpu->opcodes[1]) & 0x4 == 0)
+							cpu->registers[RM(cpu->opcodes[1])] = (tmp & 0xFF) | ((((tmp & 0xFF00) >> 8) + (cpu->registers[REG(cpu->opcodes[1])] & 0xFF)) << 8);
+						else
+							cpu->registers[RM(cpu->opcodes[1])] = (tmp & 0xFF) | ((((tmp & 0xFF00) >> 8) + ((cpu->registers[REG(cpu->opcodes[1])] & 0xFF00) >> 8)) << 8);
+					}
+				}
+			}
+		}
 	}
 }
 
